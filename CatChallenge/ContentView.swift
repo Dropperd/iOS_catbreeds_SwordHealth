@@ -9,53 +9,74 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
-
+    @State private var breeds: [CatBreed] = []
+    @State private var isLoading = false
+    @State private var errorMessage: String?
+    
+    //simple view to see if fetchapi is working
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
+            NavigationView {
+                List {
+                    if isLoading {
+                        ProgressView("Loading...")
+                    } else if let errorMessage = errorMessage {
+                        Text("Error: \(errorMessage)")
+                            .foregroundColor(.red)
+                    } else {
+                        ForEach(breeds, id: \.apiId) { breed in
+                            VStack(alignment: .leading) {
+                                Text(breed.name)
+                                    .font(.headline)
+                                if let avg = breed.lifeSpanAverage {
+                                    Text("Average lifespan: \(avg) years")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                } else {
+                                    Text("Lifespan unknown")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
                     }
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
+                .navigationTitle("Cat Breeds")
+                .onAppear {
+                    fetchBreeds()
                 }
             }
-        } detail: {
-            Text("Select an item")
+        }
+
+    func fetchBreeds() {
+        isLoading = true
+        errorMessage = nil
+
+        Task {
+            do {
+                let resultDTO = try await CatAPIService.shared.fetchBreeds()
+                breeds = resultDTO.map { dto in
+                    let (min, max) = CatAPIService.shared.parseLifeSpan(dto.life_span)
+                    return CatBreed(
+                        apiId: dto.id,
+                        name: dto.name,
+                        origin: dto.origin,
+                        temperament: dto.temperament,
+                        breedDescription: dto.description,
+                        imageURL: dto.image?.url,
+                        lifeSpanMin: min,
+                        lifeSpanMax: max
+                    )
+                }
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isLoading = false
         }
     }
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
-        }
-    }
 }
-
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .modelContainer(for: CatBreed.self, inMemory: true)
 }
