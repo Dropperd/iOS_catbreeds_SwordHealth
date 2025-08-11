@@ -11,7 +11,7 @@ import SwiftUI
 struct BreedRowView: View {
     @Bindable var breed: CatBreed
     var onFavoriteTapped: () -> Void
-
+    
     var body: some View {
         HStack(spacing: 12) {
             if let urlString = breed.imageURL, let url = URL(string: urlString) {
@@ -35,7 +35,7 @@ struct BreedRowView: View {
             } else {
                 Color.gray.frame(width: 60, height: 60).cornerRadius(8)
             }
-
+            
             VStack(alignment: .leading, spacing: 4) {
                 Text(breed.name)
                     .font(.headline)
@@ -45,9 +45,9 @@ struct BreedRowView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-
+            
             Spacer()
-
+            
             Button {
                 onFavoriteTapped()
             } label: {

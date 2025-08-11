@@ -8,10 +8,12 @@
 import Foundation
 import SwiftUI
 import SwiftData
-struct BreedDetailView: View {
-    @Bindable var breed: CatBreed
-    @Environment(\.modelContext) private var modelContext
 
+struct BreedDetailView: View {
+    let breed: CatBreed
+    @Environment(\.modelContext) private var modelContext
+    @State private var viewModel: BreedDetailViewModel?
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
@@ -21,7 +23,8 @@ struct BreedDetailView: View {
                         case .empty:
                             Color.gray.frame(height: 240).cornerRadius(12)
                         case .success(let image):
-                            image.resizable().scaledToFill().frame(height: 240).clipped().cornerRadius(12)
+                            image.resizable().scaledToFill()
+                                .frame(height: 240).clipped().cornerRadius(12)
                         case .failure:
                             Color.gray.frame(height: 240).cornerRadius(12)
                         @unknown default:
@@ -29,49 +32,49 @@ struct BreedDetailView: View {
                         }
                     }
                 }
-
+                
                 Text(breed.name)
                     .font(.title)
                     .bold()
-
+                
                 if let origin = breed.origin {
                     Text("Origin: \(origin)").font(.subheadline)
                 }
-
+                
                 if let temperament = breed.temperament {
                     Text("Temperament: \(temperament)").font(.body)
                 }
-
+                
                 if let desc = breed.breedDescription {
                     Text(desc).font(.body)
                 }
-
+                
                 if let avg = breed.lifeSpanAverage {
                     Text("Average lifespan: \(avg) years").font(.subheadline)
                 } else {
                     Text("Lifespan: Unknown").font(.subheadline)
                 }
-
+                
                 Button {
-                    breed.isFavorite.toggle()
-                    do {
-                        try modelContext.save()
-                    } catch {
-                        print("Failed to save favorite toggle: \(error)")
-                    }
+                    viewModel?.toggleFavorite()
                 } label: {
                     Label(breed.isFavorite ? "Remove from favourites" : "Add to favourites",
                           systemImage: breed.isFavorite ? "heart.fill" : "heart")
                 }
                 .buttonStyle(.borderedProminent)
                 .padding(.top, 8)
-
+                
                 Spacer()
             }
             .padding()
         }
         .navigationTitle(breed.name)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if viewModel == nil {
+                viewModel = BreedDetailViewModel(breed: breed, modelContext: modelContext)
+            }
+        }
     }
 }
 
