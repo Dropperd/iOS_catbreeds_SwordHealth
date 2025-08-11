@@ -84,7 +84,6 @@ struct FavoritesView: View {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
     let container = try! ModelContainer(for: CatBreed.self, configurations: config)
     
-    // Criar dados de teste com favoritos e lifespans
     let breed1 = CatBreed(
         apiId: "test1",
         name: "Bengal",
