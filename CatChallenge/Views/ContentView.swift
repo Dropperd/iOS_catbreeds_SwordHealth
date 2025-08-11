@@ -22,6 +22,22 @@ struct ContentView: View {
                                 viewModel.toggleFavorite(breed)
                             }
                         }
+                        .onAppear {
+                            Task {
+                                await viewModel.loadMoreIfNeeded(currentItem: breed)
+                            }
+                        }
+                    }
+                    
+                    // loading indicator at the end of the list
+                    if viewModel.isLoading && !viewModel.filteredBreeds.isEmpty {
+                        HStack {
+                            Spacer()
+                            ProgressView("Loading more...")
+                                .foregroundStyle(.secondary)
+                            Spacer()
+                        }
+                        .listRowSeparator(.hidden)
                     }
                 }
                 .navigationTitle("Cat Breeds")
@@ -32,32 +48,39 @@ struct ContentView: View {
                         }
                     }
                 }
-                .searchable(text: Binding(
-                    get: { viewModel.searchText },
-                    set: { viewModel.searchText = $0 }
-                ), placement: .navigationBarDrawer(displayMode: .always))
-                .overlay {
-                    if viewModel.isLoading {
-                        ProgressView("Loading breeds…")
-                    }
+                .searchable(
+                    text: Binding(
+                        get: { viewModel.searchText },
+                        set: { viewModel.searchText = $0 }
+                    ),
+                    placement: .navigationBarDrawer(displayMode: .always)
+                )
+                .refreshable {
+                    await viewModel.refreshData()
                 }
-                .task {
-                    await viewModel.loadBreeds()
+                .overlay {
+                    if viewModel.isLoading && viewModel.filteredBreeds.isEmpty {
+                        ProgressView("Loading breeds...")
+                    }
                 }
                 .alert("Error", isPresented: Binding(
                     get: { viewModel.errorMessage != nil },
                     set: { if !$0 { viewModel.errorMessage = nil } }
                 )) {
-                    Button("OK", role: .cancel) { viewModel.errorMessage = nil }
+                    Button("OK", role: .cancel) {
+                        viewModel.errorMessage = nil
+                    }
                 } message: {
                     Text(viewModel.errorMessage ?? "")
+                }
+                .task {
+                    await viewModel.loadInitialBreeds()
                 }
             }
         }
         .onAppear {
             if viewModel == nil {
                 viewModel = BreedsListViewModel(modelContext: modelContext)
-                viewModel?.fetchLocalBreeds()
             }
         }
     }
